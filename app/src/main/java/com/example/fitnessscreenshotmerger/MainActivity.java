@@ -185,122 +185,123 @@ public class MainActivity extends AppCompatActivity {
         // the image chooser function
         BSelectImage.setOnClickListener(v -> imageChooser());
 
-        oldSomeActivityResultLauncher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    int heightPixels = -1;
-                    int widthPixels = -1;
-                    int combinedDimension = -1;
-
-                    if (result.getResultCode() == Activity.RESULT_OK) {
-                        // There are no request codes
-                        Intent data = result.getData();
-                        ClipData clipData = data.getClipData();
-
-                        System.out.println("data: " + data.toString());
-
-                        if (clipData == null) {
-                            System.out.println("ERROR: No result from ClipData.");
-                            return;
-                        }
-
-                        List<Bitmap> images = new ArrayList<>();
-                        for (int i = 0; i < clipData.getItemCount(); i++) {
-                            ClipData.Item item = clipData.getItemAt(i);
-                            Uri imageUri = item.getUri();
-                            System.out.println("Decoding: " + imageUri);
-                            Bitmap img = null;
-                            try {
-                                img = MediaStore.Images.Media.getBitmap(getContentResolver(), imageUri);
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                            if (img == null) {
-                                System.out.println("ERROR: Could not decode image \"" + imageUri + "\"");
-                            }
-
-                            System.out.println("Image Height: " + img.getHeight() + ", Width: " + img.getWidth());
-                            images.add(img);
-
-                            if (i == 0) {
-                                int dim1 = img.getWidth();
-                                int dim2 = img.getHeight();
-
-                                if (dim1 > dim2) {
-                                    heightPixels = dim1;
-                                    widthPixels = dim2;
-                                } else {
-                                    heightPixels = dim2;
-                                    widthPixels = dim1;
-                                }
-
-                                combinedDimension = heightPixels + widthPixels;
-
-                                System.out.println("Current --> Height: " + heightPixels + ", Width: " + widthPixels + ", Combined: " + combinedDimension);
-                            } else {
-                                if((img.getHeight() != heightPixels && img.getHeight() != widthPixels) ||
-                                        (img.getWidth() != heightPixels && img.getWidth() != widthPixels)) {
-                                    System.out.println("Inconsistent dimensions!");
-
-                                    runOnUiThread(new Runnable() {
-                                        public void run() {
-                                            Toast errorToast = Toast.makeText(MainActivity.this, "Error: the images that you selected have inconsistent width and height dimensions.", Toast.LENGTH_SHORT);
-                                            errorToast.show();
-                                        }
-                                    });
-                                }
-                            }
-                        }
-
-                        System.out.println("Officially --> Height: " + heightPixels + ", Width: " + widthPixels + ", Combined: " + combinedDimension);
-
-                        Bitmap tallest = null;
-                        List<Bitmap> landscape = new ArrayList<>();
-                        List<Bitmap> vertical = new ArrayList<>();
-
-                        for (int i = 0; i < images.size(); i++) {
-                            Bitmap img = images.get(i);
-
-                            if (img.getWidth() == heightPixels) {
-                                landscape.add(img);
-                            }
-                            else if (img.getWidth() == widthPixels) {
-                                if (img.getHeight() == heightPixels) {
-                                    vertical.add(img);
-                                } else {
-                                    tallest = img;
-                                }
-                            }
-                        }
-
-                        if (tallest != null) {
-                            double aspectRatio = (double)tallest.getHeight() / (double)tallest.getWidth();
-                            int adjustedHeight = heightPixels;
-                            int adjustedWidth = (int)(adjustedHeight / aspectRatio);
-                            System.out.println("Tallest height: " + tallest.getHeight());
-                            Bitmap resized = resize(tallest, adjustedWidth, adjustedHeight);
-                            vertical.add(resized);
-                        }
-
-                        int totalWidth = 0;
-                        for (Bitmap img : vertical) {
-                            totalWidth += img.getWidth();
-                        }
-                        totalWidth += heightPixels; // For the landscape stacked.
-
-                        Bitmap combined = Bitmap.createBitmap(totalWidth, heightPixels, images.get(0).getConfig());
-                        Canvas canvas = new Canvas(combined);
-                        canvas.drawBitmap(vertical.get(0), 0, 0, null);
-                        canvas.drawBitmap(landscape.get(0), widthPixels, 0, null);
-                        canvas.drawBitmap(landscape.get(1), widthPixels, widthPixels, null);
-                        canvas.drawBitmap(vertical.get(1), combinedDimension, 0, null);
-
-                        System.out.println("combined Image Height: " + combined.getHeight() + ", combined Width: " + combined.getWidth());
-                        IVPreviewImage.setImageBitmap(combined);
-
-                        saveToInternalStorage(combined);
-                    }
-                });
+//        oldSomeActivityResultLauncher = registerForActivityResult(
+//                new ActivityResultContracts.StartActivityForResult(),
+//                result -> {
+//                    int heightPixels = -1;
+//                    int widthPixels = -1;
+//                    int combinedDimension = -1;
+//
+//                    if (result.getResultCode() == Activity.RESULT_OK) {
+//                        // There are no request codes
+//                        Intent data = result.getData();
+//                        ClipData clipData = data.getClipData();
+//
+//                        System.out.println("data: " + data.toString());
+//
+//                        if (clipData == null) {
+//                            System.out.println("ERROR: No result from ClipData.");
+//                            return;
+//                        }
+//
+//                        List<Bitmap> images = new ArrayList<>();
+//                        for (int i = 0; i < clipData.getItemCount(); i++) {
+//                            ClipData.Item item = clipData.getItemAt(i);
+//                            Uri imageUri = item.getUri();
+//                            System.out.println("Decoding: " + imageUri);
+//                            Bitmap img = null;
+//                            try {
+//                                img = MediaStore.Images.Media.getBitmap(getContentResolver(), imageUri);
+//                            } catch (IOException e) {
+//                                throw new RuntimeException(e);
+//                            }
+//                            if (img == null) {
+//                                System.out.println("ERROR: Could not decode image \"" + imageUri + "\"");
+//                            }
+//
+//                            System.out.println("Image Height: " + img.getHeight() + ", Width: " + img.getWidth());
+//                            images.add(img);
+//
+//                            if (i == 0) {
+//                                int dim1 = img.getWidth();
+//                                int dim2 = img.getHeight();
+//
+//                                if (dim1 > dim2) {
+//                                    heightPixels = dim1;
+//                                    widthPixels = dim2;
+//                                } else {
+//                                    heightPixels = dim2;
+//                                    widthPixels = dim1;
+//                                }
+//
+//                                combinedDimension = heightPixels + widthPixels;
+//
+//                                System.out.println("Current --> Height: " + heightPixels + ", Width: " + widthPixels + ", Combined: " + combinedDimension);
+//                            } else {
+//                                if((img.getHeight() != heightPixels && img.getHeight() != widthPixels) ||
+//                                        (img.getWidth() != heightPixels && img.getWidth() != widthPixels)) {
+//                                    System.out.println("Inconsistent dimensions!");
+//
+//                                    runOnUiThread(new Runnable() {
+//                                        public void run() {
+//                                            Toast errorToast = Toast.makeText(MainActivity.this, "Error: the images that you selected have inconsistent width and height dimensions.", Toast.LENGTH_SHORT);
+//                                            errorToast.show();
+//                                        }
+//                                    });
+//                                }
+//                            }
+//                        }
+//
+//                        System.out.println("Officially --> Height: " + heightPixels + ", Width: " + widthPixels + ", Combined: " + combinedDimension);
+//
+//                        Bitmap tallest = null;
+//                        List<Bitmap> landscape = new ArrayList<>();
+//                        List<Bitmap> vertical = new ArrayList<>();
+//
+//                        for (int i = 0; i < images.size(); i++) {
+//                            Bitmap img = images.get(i);
+//
+//                            if (img.getWidth() == heightPixels) {
+//                                System.out.println("Adding image " + img.get);
+//                                landscape.add(img);
+//                            }
+//                            else if (img.getWidth() == widthPixels) {
+//                                if (img.getHeight() == heightPixels) {
+//                                    vertical.add(img);
+//                                } else {
+//                                    tallest = img;
+//                                }
+//                            }
+//                        }
+//
+//                        if (tallest != null) {
+//                            double aspectRatio = (double)tallest.getHeight() / (double)tallest.getWidth();
+//                            int adjustedHeight = heightPixels;
+//                            int adjustedWidth = (int)(adjustedHeight / aspectRatio);
+//                            System.out.println("Tallest height: " + tallest.getHeight());
+//                            Bitmap resized = resize(tallest, adjustedWidth, adjustedHeight);
+//                            vertical.add(resized);
+//                        }
+//
+//                        int totalWidth = 0;
+//                        for (Bitmap img : vertical) {
+//                            totalWidth += img.getWidth();
+//                        }
+//                        totalWidth += heightPixels; // For the landscape stacked.
+//
+//                        Bitmap combined = Bitmap.createBitmap(totalWidth, heightPixels, images.get(0).getConfig());
+//                        Canvas canvas = new Canvas(combined);
+//                        canvas.drawBitmap(vertical.get(0), 0, 0, null);
+//                        canvas.drawBitmap(landscape.get(0), widthPixels, 0, null);
+//                        canvas.drawBitmap(landscape.get(1), widthPixels, widthPixels, null);
+//                        canvas.drawBitmap(vertical.get(1), combinedDimension, 0, null);
+//
+//                        System.out.println("combined Image Height: " + combined.getHeight() + ", combined Width: " + combined.getWidth());
+//                        IVPreviewImage.setImageBitmap(combined);
+//
+//                        saveToInternalStorage(combined);
+//                    }
+//                });
 
         someActivityResultLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
@@ -340,8 +341,10 @@ public class MainActivity extends AppCompatActivity {
                         List<Bitmap> vertical = new ArrayList<>();
                         for (Bitmap img : images) {
                             if (img.getWidth() > img.getHeight()) {
+                                System.out.println("Found horizontal/landscape image. Width: " + img.getWidth() + ", Height: " + img.getHeight());
                                 landscape.add(img);
                             } else {
+                                System.out.println("Found vertical/portrait image. Width: " + img.getWidth() + ", Height: " + img.getHeight());
                                 vertical.add(img);
                             }
                         }
@@ -358,36 +361,28 @@ public class MainActivity extends AppCompatActivity {
                             return;
                         }
 
-                        // Resize the taller of the two vertical images, if one of them is strictly taller than the other.
-                        // If they're both the same height, then no resizing will occur.
-                        Bitmap tallest = null;
-                        int tallestIndex = -1;
-                        Bitmap shortest = null;
-                        if (vertical.get(0).getHeight() > vertical.get(1).getHeight()) {
-                            tallest = vertical.get(0);
-                            shortest = vertical.get(1);
-                            tallestIndex = 0;
-                        } else if (vertical.get(1).getHeight() > vertical.get(0).getHeight()) {
-                            tallest = vertical.get(1);
-                            shortest = vertical.get(0);
-                            tallestIndex = 1;
-                        }
+                        int totalHeight = landscape.get(0).getHeight() + landscape.get(1).getHeight();
 
-                        if (tallest != null) {
+                        for (int i = 0; i < vertical.size(); i++) {
+                            Bitmap currentImage = vertical.get(i);
+
                             // Compute the aspect ratio of the tallest image.
-                            double aspectRatio = (double)tallest.getHeight() / (double)tallest.getWidth();
+                            double aspectRatio = (double)currentImage.getHeight() / (double)currentImage.getWidth();
                             // We'll resize the taller of the two images so that its height matches the shorter image.
-                            int adjustedHeight = shortest.getHeight();
                             // Maintain the same aspect ratio (for the tallest image) so it doesn't get skewed.
-                            int adjustedWidth = (int)(adjustedHeight / aspectRatio);
+                            int adjustedWidth = (int)(totalHeight / aspectRatio);
+
+                            System.out.println("Resizing vertical image #" + (i+1));
+                            System.out.println("Height: " + currentImage.getHeight() + " --> " + totalHeight);
+                            System.out.println("Width: " + currentImage.getWidth() + " --> " + adjustedWidth);
+
                             // Resize the taller image.
-                            Bitmap resized = resize(tallest, adjustedWidth, adjustedHeight);
+                            Bitmap resized = resize(currentImage, adjustedWidth, totalHeight);
                             // Replace the original image with the resized version.
-                            vertical.set(tallestIndex, resized);
+                            vertical.set(i, resized);
                         }
 
                         int totalWidth = landscape.get(0).getWidth() + vertical.get(0).getWidth() +  vertical.get(1).getWidth();
-                        int totalHeight = landscape.get(0).getHeight() + landscape.get(1).getHeight();
 
                         int maxWidth = Math.max(landscape.get(0).getWidth(), landscape.get(1).getWidth());
 
